@@ -14,7 +14,7 @@ class LightSdkReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
-        if (!isFromLightOS(intent)) return
+        if (!isFromLightServer(intent)) return
 
         val encryptedData = intent?.extras?.getString("data") ?: return
 
@@ -22,10 +22,11 @@ class LightSdkReceiver : BroadcastReceiver() {
             .onFailure { Log.e(TAG, "broadcast decryption error") }
             .getOrNull() ?: return
 
+        Log.d(TAG, "successfully decrypted message from server app")
         // TODO figure out what to do with these messages!
     }
 
-    private fun isFromLightOS(intent: Intent?): Boolean {
+    private fun isFromLightServer(intent: Intent?): Boolean {
         val senderIdentity = intent?.getParcelableExtra("sender_identity", PendingIntent::class.java)
             ?: return false
         return senderIdentity.creatorPackage == BuildConfig.LIGHT_SERVER_PACKAGE

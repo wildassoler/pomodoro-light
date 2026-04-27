@@ -28,7 +28,7 @@ object LightSdkServer {
             return isSystemApp && isSystemUid
         }
 
-    fun Context.messageClient(client: InstalledClient, clientPublicKeyBase64: String, data: String) {
+    fun Context.messageClient(clientPackageName: String, clientPublicKeyBase64: String, data: String) {
         try {
             val encoded: String = LightCrypto.encrypt(data, clientPublicKeyBase64)
 
@@ -36,11 +36,10 @@ object LightSdkServer {
                 PendingIntent.getBroadcast(this, 0, Intent(), PendingIntent.FLAG_IMMUTABLE)
 
             val intent = Intent(LightConstants.ACTION_SDK_MARKER)
-            intent.setPackage(client.packageInfo.packageName)
+            intent.setPackage(clientPackageName)
             intent.putExtra("data", encoded)
             intent.putExtra("sender_identity", senderIdentity)
             if (runningAsSystemApp) {
-                // TODO untested in this repo
                 val current = UserHandle::class.java.getField("CURRENT").get(null) as UserHandle
                 sendBroadcastAsUser(intent, current)
             } else {
@@ -49,7 +48,7 @@ object LightSdkServer {
         } catch (e: Exception) {
             Log.e(
                 TAG,
-                "Failed to send encrypted message to client: " + client.packageInfo.packageName,
+                "Failed to send encrypted message to client: $clientPackageName",
                 e
             )
         }

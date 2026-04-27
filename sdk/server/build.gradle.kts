@@ -12,8 +12,6 @@ android {
 
     defaultConfig {
         minSdk = rootProject.ext["minSdk"] as Int
-        // will be true ONLY when used in LightOS
-        buildConfigField("Boolean", "IS_SYSTEM_APP", "false")
     }
 
     buildFeatures {

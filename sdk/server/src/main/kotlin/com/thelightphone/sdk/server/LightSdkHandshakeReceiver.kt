@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.thelightphone.sdk.server.LightSdkServer.messageClient
 import com.thelightphone.sdk.shared.LightCrypto
 
 private const val TAG = "LightOSSdkHandshake"
@@ -22,7 +23,7 @@ class LightSdkHandshakeReceiver : BroadcastReceiver() {
                 return
             }
 
-        val creatorPackage = senderIdentity.creatorPackage
+        val creatorPackage = senderIdentity.creatorPackage!!
         val publicKey = intent.getStringExtra("public_key")
             ?: run {
                 Log.w(TAG, "Handshake missing public_key from $creatorPackage")
