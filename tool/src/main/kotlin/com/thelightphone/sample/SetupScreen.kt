@@ -21,10 +21,19 @@ import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.LightThemeTokens
 import com.thelightphone.sdk.ui.lightClickable
 
+// Which minutes picker (if any) is currently open as an overlay
 internal enum class PickerTarget { FOCUS, BREAK }
 
+// The initial screen: lets the user configure focus/break length,
+// see today's completed count, and jump into a run or the history screen.
 @Composable
-internal fun SetupScreenContent(state: PomodoroState, viewModel: PomodoroViewModel) {
+internal fun SetupScreenContent(
+    state: PomodoroState,
+    viewModel: PomodoroViewModel,
+    onHistoryClick: () -> Unit,
+) {
+    // Local UI-only state: tracks which picker overlay is open, if any.
+    // Doesn't live in the ViewModel because it has no meaning outside this screen.
     var activePicker by remember { mutableStateOf<PickerTarget?>(null) }
 
     Box(
@@ -39,6 +48,7 @@ internal fun SetupScreenContent(state: PomodoroState, viewModel: PomodoroViewMod
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // Shows which phase the upcoming timer will run in
             val modeLabel = if (state.mode == PomodoroMode.FOCUS) "Focus" else "Break"
 
             LightText(
@@ -47,6 +57,7 @@ internal fun SetupScreenContent(state: PomodoroState, viewModel: PomodoroViewMod
                 modifier = Modifier.padding(bottom = 16.dp),
             )
 
+            // Preview of the countdown, formatted as MM:SS
             val timeLabel = state.remainingSeconds.toTimeLabel()
 
             LightText(
@@ -57,6 +68,7 @@ internal fun SetupScreenContent(state: PomodoroState, viewModel: PomodoroViewMod
                     .padding(vertical = 24.dp),
             )
 
+            // Starts the timer and switches to the running screen
             LightText(
                 text = "Start",
                 variant = LightTextVariant.Copy,
@@ -65,6 +77,7 @@ internal fun SetupScreenContent(state: PomodoroState, viewModel: PomodoroViewMod
                     .lightClickable { viewModel.start() },
             )
 
+            // Opens the focus-length picker overlay
             MinutesDropdown(
                 label = "Focus",
                 selectedMinutes = state.focusMinutes,
@@ -75,6 +88,7 @@ internal fun SetupScreenContent(state: PomodoroState, viewModel: PomodoroViewMod
                     .padding(bottom = 12.dp),
             )
 
+            // Opens the break-length picker overlay
             MinutesDropdown(
                 label = "Break",
                 selectedMinutes = state.breakMinutes,
@@ -89,8 +103,19 @@ internal fun SetupScreenContent(state: PomodoroState, viewModel: PomodoroViewMod
                 lighten = true,
                 modifier = Modifier.padding(top = 16.dp),
             )
+
+            // Navigates to a real, separate LightScreen (with native back button),
+            // unlike Setup/Running which just swap Content within this same screen
+            LightText(
+                text = "History",
+                variant = LightTextVariant.Copy,
+                modifier = Modifier
+                    .padding(top = 16.dp)
+                    .lightClickable { onHistoryClick() },
+            )
         }
 
+        // Overlay picker, rendered on top of everything else when active
         when (activePicker) {
             PickerTarget.FOCUS -> MinutesPickerOverlay(
                 options = (15..60 step 5).toList(),

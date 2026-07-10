@@ -26,7 +26,11 @@ class HomeScreen(sealedActivity: SealedLightActivity) : LightScreen<Unit, Pomodo
 
         LightTheme(colors = themeColors) {
             if (state.showSetupScreen) {
-                SetupScreenContent(state = state, viewModel = viewModel)
+                SetupScreenContent(
+                    state = state,
+                    viewModel = viewModel,
+                    onHistoryClick = { navigateTo(::StatsScreen) },
+                )
             } else {
                 RunningScreenContent(state = state, viewModel = viewModel)
             }
