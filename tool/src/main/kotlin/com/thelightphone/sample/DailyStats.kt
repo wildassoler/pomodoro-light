@@ -22,3 +22,18 @@ fun List<DailyStats>.withUpdatedDay(
     val updated = withoutToday + DailyStats(today, pomodorosCompleted, focusMinutes)
     return updated.sortedByDescending { it.date }.take(maxDays)
 }
+
+// Formats an ISO date ("2026-07-10") as "Today", "Yesterday", or "Jul 10"
+fun String.toReadableDate(): String {
+    val date = java.time.LocalDate.parse(this)
+    val today = java.time.LocalDate.now()
+
+    return when (date) {
+        today -> "Today"
+        today.minusDays(1) -> "Yesterday"
+        else -> {
+            val month = date.month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)
+            "$month ${date.dayOfMonth}"
+        }
+    }
+}

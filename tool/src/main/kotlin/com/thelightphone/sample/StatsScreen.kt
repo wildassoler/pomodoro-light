@@ -47,61 +47,61 @@ class StatsScreen(sealedActivity: SealedLightActivity) : LightScreen<Unit, Stats
         val themeColors by LightThemeController.colors.collectAsState()
 
         LightTheme(colors = themeColors) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(LightThemeTokens.colors.background),
+                    .background(LightThemeTokens.colors.background)
+                    .padding(24.dp),
             ) {
-                LightIcon(
-                    icon = LightIcons.BACK,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(24.dp)
-                        .lightClickable { goBack() },
-                )
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 72.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
+                // Back arrow and title share the same row, top-left / top-right
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
+                    LightIcon(
+                        icon = LightIcons.BACK,
+                        modifier = Modifier.lightClickable { goBack() },
+                    )
+
                     LightText(
                         text = "History",
                         variant = LightTextVariant.Heading,
-                        modifier = Modifier.padding(bottom = 16.dp),
                     )
+                }
 
-                    // DEV-ONLY: see TestDataSeeder. Remove before shipping.
+                // DEV-ONLY: see TestDataSeeder. Remove before shipping.
+                LightText(
+                    text = "Seed test data",
+                    variant = LightTextVariant.Detail,
+                    lighten = true,
+                    modifier = Modifier
+                        .padding(top = 16.dp, bottom = 16.dp)
+                        .lightClickable { viewModel.seedTestData() },
+                )
+
+                val lastSevenDays = buildLastSevenDays(history)
+
+                WeekBarChart(
+                    days = lastSevenDays,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .padding(bottom = 24.dp),
+                )
+
+                val daysWithActivity = history.filter { it.pomodorosCompleted > 0 }
+
+                if (daysWithActivity.isEmpty()) {
                     LightText(
-                        text = "Seed test data",
-                        variant = LightTextVariant.Detail,
+                        text = "No history yet.",
+                        variant = LightTextVariant.Copy,
                         lighten = true,
-                        modifier = Modifier
-                            .padding(bottom = 16.dp)
-                            .lightClickable { viewModel.seedTestData() },
                     )
-
-                    val lastSevenDays = buildLastSevenDays(history)
-
-                    WeekBarChart(
-                        days = lastSevenDays,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(140.dp)
-                            .padding(bottom = 24.dp),
-                    )
-
-                    if (history.isEmpty()) {
-                        LightText(
-                            text = "No history yet.",
-                            variant = LightTextVariant.Copy,
-                            lighten = true,
-                        )
-                    } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            items(history) { day ->
-                                DayRow(day = day)
-                            }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(daysWithActivity) { day ->
+                            DayRow(day = day)
                         }
                     }
                 }
@@ -178,7 +178,7 @@ private fun DayRow(day: DailyStats) {
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         LightText(
-            text = day.date,
+            text = day.date.toReadableDate(),
             variant = LightTextVariant.Copy,
         )
 

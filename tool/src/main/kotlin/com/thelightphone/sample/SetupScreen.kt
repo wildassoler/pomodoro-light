@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
@@ -25,7 +27,7 @@ import com.thelightphone.sdk.ui.lightClickable
 internal enum class PickerTarget { FOCUS, BREAK }
 
 // The initial screen: lets the user configure focus/break length,
-// see today's completed count, and jump into a run or the history screen.
+// and jump into a run or the history screen.
 @Composable
 internal fun SetupScreenContent(
     state: PomodoroState,
@@ -94,24 +96,26 @@ internal fun SetupScreenContent(
                 selectedMinutes = state.breakMinutes,
                 enabled = true,
                 onClick = { activePicker = PickerTarget.BREAK },
-                modifier = Modifier.width(160.dp),
-            )
-
-            LightText(
-                text = "Completed today: ${state.pomodorosToday}",
-                variant = LightTextVariant.Detail,
-                lighten = true,
-                modifier = Modifier.padding(top = 16.dp),
+                modifier = Modifier
+                    .width(160.dp)
+                    .padding(bottom = 12.dp),
             )
 
             // Navigates to a real, separate LightScreen (with native back button),
-            // unlike Setup/Running which just swap Content within this same screen
+            // unlike Setup/Running which just swap Content within this same screen.
+            // Styled like the pill buttons above for visual consistency.
             LightText(
                 text = "History",
                 variant = LightTextVariant.Copy,
+                align = TextAlign.Center,
                 modifier = Modifier
-                    .padding(top = 16.dp)
-                    .lightClickable { onHistoryClick() },
+                    .width(160.dp)
+                    .background(
+                        color = LightThemeTokens.colors.content.copy(alpha = 0.08f),
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                    .lightClickable { onHistoryClick() }
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
             )
         }
 

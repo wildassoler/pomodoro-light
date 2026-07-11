@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.viewModelScope
 import com.thelightphone.sdk.LightViewModel
+import com.thelightphone.sdk.SimpleLightScreen
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +39,16 @@ class PomodoroViewModel(
     private var timerJob: Job? = null
 
     init {
+        viewModelScope.launch {
+            loadDailyProgress()
+        }
+    }
+
+    // Re-checks the date every time the screen becomes visible again (e.g.
+    // returning from History, or the app resuming from background). This
+    // catches the day rolling over past midnight while the app stayed open.
+    override fun onScreenShow(screen: SimpleLightScreen<Unit>) {
+        super.onScreenShow(screen)
         viewModelScope.launch {
             loadDailyProgress()
         }
