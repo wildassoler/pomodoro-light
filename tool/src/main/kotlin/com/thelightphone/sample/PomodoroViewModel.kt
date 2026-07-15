@@ -14,19 +14,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import kotlin.time.Duration.Companion.seconds
 
-// Keys used to read/write values in the shared DataStore
+// Keys used to read/write today's counters in the shared DataStore.
+// (The full history lives in HistoryStore, not here.)
 private val KEY_LAST_DATE = stringPreferencesKey("pomodoro_last_date")
 private val KEY_POMODOROS_TODAY = intPreferencesKey("pomodoro_count_today")
 private val KEY_TOTAL_MINUTES_TODAY = intPreferencesKey("pomodoro_total_minutes_today")
-private val KEY_HISTORY_JSON = stringPreferencesKey("pomodoro_history_json")
-
-private val historyJson = Json { ignoreUnknownKeys = true }
 
 class PomodoroViewModel(
     private val dataStore: DataStore<Preferences>
@@ -73,26 +68,21 @@ class PomodoroViewModel(
 
     private suspend fun saveDailyProgress() {
         val today = LocalDate.now().toString()
-        val prefs = dataStore.data.first()
 
-        val currentHistory = try {
-            val raw = prefs[KEY_HISTORY_JSON]
-            if (raw != null) historyJson.decodeFromString(ListSerializer(DailyStats.serializer()), raw) else emptyList()
-        } catch (e: Exception) {
-            emptyList()
-        }
-
+        // Update the full history (delegated to HistoryStore)
+        val currentHistory = HistoryStore.load(dataStore)
         val updatedHistory = currentHistory.withUpdatedDay(
             today = today,
             pomodorosCompleted = _state.value.pomodorosToday,
             focusMinutes = _state.value.totalFocusMinutesToday,
         )
+        HistoryStore.save(dataStore, updatedHistory)
 
-        dataStore.edit { editablePrefs ->
-            editablePrefs[KEY_LAST_DATE] = today
-            editablePrefs[KEY_POMODOROS_TODAY] = _state.value.pomodorosToday
-            editablePrefs[KEY_TOTAL_MINUTES_TODAY] = _state.value.totalFocusMinutesToday
-            editablePrefs[KEY_HISTORY_JSON] = historyJson.encodeToString(ListSerializer(DailyStats.serializer()), updatedHistory)
+        // Update today's quick-access counters
+        dataStore.edit { prefs ->
+            prefs[KEY_LAST_DATE] = today
+            prefs[KEY_POMODOROS_TODAY] = _state.value.pomodorosToday
+            prefs[KEY_TOTAL_MINUTES_TODAY] = _state.value.totalFocusMinutesToday
         }
     }
 
