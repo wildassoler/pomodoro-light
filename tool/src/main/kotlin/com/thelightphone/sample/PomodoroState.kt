@@ -6,6 +6,11 @@ enum class PomodoroMode {
     BREAK
 }
 
+// Returns the other phase (FOCUS -> BREAK, BREAK -> FOCUS)
+fun PomodoroMode.opposite(): PomodoroMode {
+    return if (this == PomodoroMode.FOCUS) PomodoroMode.BREAK else PomodoroMode.FOCUS
+}
+
 // Represents a sound that should be played once, then cleared
 enum class SoundEvent {
     FOCUS_ENDED,

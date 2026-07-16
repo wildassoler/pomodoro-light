@@ -139,17 +139,8 @@ class PomodoroViewModel(
     fun skipToNextPhase() {
         timerJob?.cancel()
 
-        val nextMode = if (_state.value.mode == PomodoroMode.FOCUS) {
-            PomodoroMode.BREAK
-        } else {
-            PomodoroMode.FOCUS
-        }
-
-        val nextMinutes = if (nextMode == PomodoroMode.FOCUS) {
-            _state.value.focusMinutes
-        } else {
-            _state.value.breakMinutes
-        }
+        val nextMode = _state.value.mode.opposite()
+        val nextMinutes = minutesFor(nextMode)
 
         _state.value = _state.value.copy(
             mode = nextMode,
@@ -169,7 +160,12 @@ class PomodoroViewModel(
     }
 
     private fun minutesForCurrentMode(): Int {
-        return if (_state.value.mode == PomodoroMode.FOCUS) {
+        return minutesFor(_state.value.mode)
+    }
+
+    // Returns the configured length (in minutes) for the given mode
+    private fun minutesFor(mode: PomodoroMode): Int {
+        return if (mode == PomodoroMode.FOCUS) {
             _state.value.focusMinutes
         } else {
             _state.value.breakMinutes
@@ -191,17 +187,8 @@ class PomodoroViewModel(
             _state.value.totalFocusMinutesToday
         }
 
-        val nextMode = if (finishedMode == PomodoroMode.FOCUS) {
-            PomodoroMode.BREAK
-        } else {
-            PomodoroMode.FOCUS
-        }
-
-        val nextMinutes = if (nextMode == PomodoroMode.FOCUS) {
-            _state.value.focusMinutes
-        } else {
-            _state.value.breakMinutes
-        }
+        val nextMode = finishedMode.opposite()
+        val nextMinutes = minutesFor(nextMode)
 
         val soundToPlay = if (finishedMode == PomodoroMode.FOCUS) {
             SoundEvent.FOCUS_ENDED
