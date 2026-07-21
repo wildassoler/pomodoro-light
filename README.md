@@ -8,13 +8,14 @@ Pomodoro Light is a focus timer built specifically for the [Light Phone III](htt
 
 It's built using Light's official [LightOS SDK](https://github.com/lightphone/light-sdk), which means it follows the same design language, restrictions, and philosophy as Light's own built-in tools — no infinite scrolling, no unnecessary notifications, just a simple tool that does one thing well.
 
+
 <img width="314" height="362" alt="pomodoroLightDemo" src="https://github.com/user-attachments/assets/eea2d0ea-3aae-4730-9469-f16363e8af29" />
 
 ## Features
 
 - Focus/Break cycle timer (15-60 min focus, 5-30 min break, in 5-minute steps)
 - Circular progress ring visualisation
-- Daily stats (completed pomodoros, total focus minutes)
+- History screen with a 7-day bar chart and a scrollable 30-day list of completed pomodoros and focus minutes
 - Minimalist design following LightOS UI components
 
 ## Built with
