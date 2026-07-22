@@ -47,7 +47,6 @@ kotlin {
 dependencies {
     api(project(":sdk:shared"))
     api(project(":sdk:ui"))
-
     api(libs.compose.activity)
     api(libs.kotlinx.coroutines)
     api(libs.androidx.lifecycle.viewmodel)
@@ -62,7 +61,8 @@ dependencies {
     api(libs.androidx.room.runtime)
     api(libs.androidx.room.ktx)
     implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.media3.common)
+    implementation(libs.androidx.media3.exoplayer)
     lintChecks(project(":lint-rules"))
-
     testImplementation(libs.kotlin.test)
 }

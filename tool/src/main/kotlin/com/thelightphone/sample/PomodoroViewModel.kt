@@ -8,6 +8,10 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.viewModelScope
 import com.thelightphone.sdk.LightViewModel
 import com.thelightphone.sdk.SimpleLightScreen
+import com.thelightphone.sdk.audio.LightAudioItem
+import com.thelightphone.sdk.audio.LightAudioPlayer
+import com.thelightphone.sdk.audio.LightAudioSource
+import com.thelightphone.sdk.audio.LightMediaMetadata
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,10 +37,21 @@ class PomodoroViewModel(
     // Holds the running countdown coroutine, so we can cancel it on pause
     private var timerJob: Job? = null
 
+    // Holds the looping alarm coroutine (break-ended sound), cancelled once
+    // the user presses Start again
+    private var alarmLoopJob: Job? = null
+
+    // Set by the UI once the audio player is available (see attachAudioPlayer)
+    private var audioPlayer: LightAudioPlayer? = null
+
     init {
         viewModelScope.launch {
             loadDailyProgress()
         }
+    }
+
+    fun attachAudioPlayer(player: LightAudioPlayer) {
+        audioPlayer = player
     }
 
     // Re-checks the date every time the screen becomes visible again (e.g.
@@ -89,7 +104,11 @@ class PomodoroViewModel(
     fun start() {
         if (_state.value.isRunning) return
 
+        alarmLoopJob?.cancel()
+        alarmLoopJob = null
+
         _state.value = _state.value.copy(isRunning = true, showSetupScreen = false)
+        playSound("audio/start_click.wav")
 
         timerJob = viewModelScope.launch {
             while (_state.value.remainingSeconds > 0) {
@@ -105,6 +124,7 @@ class PomodoroViewModel(
     fun pause() {
         timerJob?.cancel()
         _state.value = _state.value.copy(isRunning = false)
+        playSound("audio/pause_click.wav")
     }
 
     fun reset() {
@@ -210,7 +230,40 @@ class PomodoroViewModel(
         }
     }
 
+    // Plays the sound matching the phase that just ended, then clears the pending event.
+    // Focus alerts play once; break alerts loop until the user presses Start.
     fun clearPendingSound() {
+        val sound = _state.value.pendingSound
         _state.value = _state.value.copy(pendingSound = null)
+
+        when (sound) {
+            SoundEvent.FOCUS_ENDED -> playSound("audio/finished_pomodoro.mp3")
+            SoundEvent.BREAK_ENDED -> startAlarmLoop("audio/finished_break.mp3")
+            null -> return
+        }
+    }
+
+    private fun startAlarmLoop(assetPath: String) {
+        alarmLoopJob?.cancel()
+        alarmLoopJob = viewModelScope.launch {
+            val player = audioPlayer ?: return@launch
+            while (true) {
+                playSound(assetPath)
+                delay(200) // let playback actually start before we watch for it to end
+                player.isPlaying.first { !it }
+            }
+        }
+    }
+
+    private fun playSound(assetPath: String) {
+        audioPlayer?.setMediaQueue(
+            listOf(
+                LightAudioItem(
+                    source = LightAudioSource.AssetSource(assetPath),
+                    metadata = LightMediaMetadata(title = "Pomodoro alert"),
+                ),
+            ),
+        )
+        audioPlayer?.play()
     }
 }

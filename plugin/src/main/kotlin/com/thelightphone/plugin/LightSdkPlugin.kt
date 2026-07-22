@@ -32,6 +32,7 @@ class LightSdkPlugin : Plugin<Project> {
             "com.thelightphone.lp3keyboard",
             "androidx.room",
             "androidx.work",
+            "androidx.media3",
             "androidx.startup",
             "io.github.david-allison:anki-android-backend",
         )
