@@ -158,6 +158,8 @@ class PomodoroViewModel(
 
     fun skipToNextPhase() {
         timerJob?.cancel()
+        alarmLoopJob?.cancel()
+        alarmLoopJob = null
 
         val nextMode = _state.value.mode.opposite()
         val nextMinutes = minutesFor(nextMode)
@@ -167,6 +169,7 @@ class PomodoroViewModel(
             remainingSeconds = nextMinutes * 60,
             isRunning = false,
         )
+        playSound("audio/start_click.wav")
     }
 
     fun backToSetup() {
@@ -238,7 +241,7 @@ class PomodoroViewModel(
 
         when (sound) {
             SoundEvent.FOCUS_ENDED -> playSound("audio/finished_pomodoro.mp3")
-            SoundEvent.BREAK_ENDED -> startAlarmLoop("audio/finished_break.mp3")
+            SoundEvent.BREAK_ENDED -> startAlarmLoop("audio/finished_break.wav")
             null -> return
         }
     }
