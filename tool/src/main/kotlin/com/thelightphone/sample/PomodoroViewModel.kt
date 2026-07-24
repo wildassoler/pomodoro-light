@@ -124,7 +124,7 @@ class PomodoroViewModel(
     fun pause() {
         timerJob?.cancel()
         _state.value = _state.value.copy(isRunning = false)
-        playSound("audio/pause_click.wav")
+        playSound("audio/pause_click.mp3")
     }
 
     fun reset() {
