@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.viewModelScope
 import com.thelightphone.sdk.LightViewModel
 import com.thelightphone.sdk.SimpleLightScreen
+import com.thelightphone.sdk.audio.LightAudio
 import com.thelightphone.sdk.audio.LightAudioItem
 import com.thelightphone.sdk.audio.LightAudioPlayer
 import com.thelightphone.sdk.audio.LightAudioSource
@@ -21,28 +22,22 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import kotlin.time.Duration.Companion.seconds
 
-// Keys used to read/write today's counters in the shared DataStore.
-// (The full history lives in HistoryStore, not here.)
 private val KEY_LAST_DATE = stringPreferencesKey("pomodoro_last_date")
 private val KEY_POMODOROS_TODAY = intPreferencesKey("pomodoro_count_today")
 private val KEY_TOTAL_MINUTES_TODAY = intPreferencesKey("pomodoro_total_minutes_today")
 
 class PomodoroViewModel(
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    lightAudio: LightAudio,
 ) : LightViewModel<Unit>() {
 
     private val _state = MutableStateFlow(PomodoroState())
     val state = _state.asStateFlow()
 
-    // Holds the running countdown coroutine, so we can cancel it on pause
     private var timerJob: Job? = null
-
-    // Holds the looping alarm coroutine (break-ended sound), cancelled once
-    // the user presses Start again
     private var alarmLoopJob: Job? = null
 
-    // Set by the UI once the audio player is available (see attachAudioPlayer)
-    private var audioPlayer: LightAudioPlayer? = null
+    private val audioPlayer: LightAudioPlayer = lightAudio.newPlayer()
 
     init {
         viewModelScope.launch {
@@ -50,18 +45,16 @@ class PomodoroViewModel(
         }
     }
 
-    fun attachAudioPlayer(player: LightAudioPlayer) {
-        audioPlayer = player
-    }
-
-    // Re-checks the date every time the screen becomes visible again (e.g.
-    // returning from History, or the app resuming from background). This
-    // catches the day rolling over past midnight while the app stayed open.
     override fun onScreenShow(screen: SimpleLightScreen<Unit>) {
         super.onScreenShow(screen)
         viewModelScope.launch {
             loadDailyProgress()
         }
+    }
+
+    override fun onCleared() {
+        audioPlayer.release()
+        super.onCleared()
     }
 
     private suspend fun loadDailyProgress() {
@@ -72,7 +65,6 @@ class PomodoroViewModel(
         val savedPomodoros = prefs[KEY_POMODOROS_TODAY] ?: 0
         val savedMinutes = prefs[KEY_TOTAL_MINUTES_TODAY] ?: 0
 
-        // If the saved date is not today, the saved progress belongs to a previous day
         val isSameDay = savedDate == today
 
         _state.value = _state.value.copy(
@@ -84,7 +76,6 @@ class PomodoroViewModel(
     private suspend fun saveDailyProgress() {
         val today = LocalDate.now().toString()
 
-        // Update the full history (delegated to HistoryStore)
         val currentHistory = HistoryStore.load(dataStore)
         val updatedHistory = currentHistory.withUpdatedDay(
             today = today,
@@ -93,7 +84,6 @@ class PomodoroViewModel(
         )
         HistoryStore.save(dataStore, updatedHistory)
 
-        // Update today's quick-access counters
         dataStore.edit { prefs ->
             prefs[KEY_LAST_DATE] = today
             prefs[KEY_POMODOROS_TODAY] = _state.value.pomodorosToday
@@ -186,7 +176,6 @@ class PomodoroViewModel(
         return minutesFor(_state.value.mode)
     }
 
-    // Returns the configured length (in minutes) for the given mode
     private fun minutesFor(mode: PomodoroMode): Int {
         return if (mode == PomodoroMode.FOCUS) {
             _state.value.focusMinutes
@@ -233,8 +222,6 @@ class PomodoroViewModel(
         }
     }
 
-    // Plays the sound matching the phase that just ended, then clears the pending event.
-    // Focus alerts play once; break alerts loop until the user presses Start.
     fun clearPendingSound() {
         val sound = _state.value.pendingSound
         _state.value = _state.value.copy(pendingSound = null)
@@ -249,17 +236,16 @@ class PomodoroViewModel(
     private fun startAlarmLoop(assetPath: String) {
         alarmLoopJob?.cancel()
         alarmLoopJob = viewModelScope.launch {
-            val player = audioPlayer ?: return@launch
             while (true) {
                 playSound(assetPath)
-                delay(200) // let playback actually start before we watch for it to end
-                player.isPlaying.first { !it }
+                delay(200)
+                audioPlayer.isPlaying.first { !it }
             }
         }
     }
 
     private fun playSound(assetPath: String) {
-        audioPlayer?.setMediaQueue(
+        audioPlayer.setMediaQueue(
             listOf(
                 LightAudioItem(
                     source = LightAudioSource.AssetSource(assetPath),
@@ -267,6 +253,6 @@ class PomodoroViewModel(
                 ),
             ),
         )
-        audioPlayer?.play()
+        audioPlayer.play()
     }
 }
