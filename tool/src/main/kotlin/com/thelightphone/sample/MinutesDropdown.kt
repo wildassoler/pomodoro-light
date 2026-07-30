@@ -1,6 +1,8 @@
 package com.thelightphone.sample
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -11,9 +13,6 @@ import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.LightThemeTokens
 import com.thelightphone.sdk.ui.lightClickable
 
-// Trigger button that shows the current selection. Tapping it notifies the
-// parent screen, which is responsible for rendering the picker overlay
-// (see MinutesPickerOverlay) full-screen and centred.
 @Composable
 fun MinutesDropdown(
     label: String,
@@ -27,7 +26,11 @@ fun MinutesDropdown(
         variant = LightTextVariant.Copy,
         modifier = modifier
             .background(
-                color = LightThemeTokens.colors.content.copy(alpha = 0.08f),
+                color = LightThemeTokens.colors.content.copy(alpha = 0.25f),
+                shape = RoundedCornerShape(12.dp),
+            )
+            .border(
+                border = BorderStroke(1.dp, LightThemeTokens.colors.content.copy(alpha = 0.4f)),
                 shape = RoundedCornerShape(12.dp),
             )
             .lightClickable(enabled = enabled) { onClick() }

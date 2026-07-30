@@ -32,14 +32,14 @@ internal fun RunningScreenContent(state: PomodoroState, viewModel: PomodoroViewM
             icon = LightIcons.BACK,
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(24.dp)
+                .padding(20.dp)
                 .lightClickable { viewModel.backToSetup() },
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
+                .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -70,7 +70,7 @@ internal fun RunningScreenContent(state: PomodoroState, viewModel: PomodoroViewM
             val startPauseLabel = if (state.isRunning) "Pause" else "Start"
 
             Row(
-                modifier = Modifier.padding(top = 16.dp),
+                modifier = Modifier.padding(top = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 LightText(

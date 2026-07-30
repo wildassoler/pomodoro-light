@@ -22,6 +22,8 @@ import com.thelightphone.sdk.ui.LightText
 import com.thelightphone.sdk.ui.LightTextVariant
 import com.thelightphone.sdk.ui.LightThemeTokens
 import com.thelightphone.sdk.ui.lightClickable
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 
 // Which minutes picker (if any) is currently open as an overlay
 internal enum class PickerTarget { FOCUS, BREAK }
@@ -34,8 +36,6 @@ internal fun SetupScreenContent(
     viewModel: PomodoroViewModel,
     onHistoryClick: () -> Unit,
 ) {
-    // Local UI-only state: tracks which picker overlay is open, if any.
-    // Doesn't live in the ViewModel because it has no meaning outside this screen.
     var activePicker by remember { mutableStateOf<PickerTarget?>(null) }
 
     Box(
@@ -46,11 +46,10 @@ internal fun SetupScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
+                .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Shows which phase the upcoming timer will run in
             val modeLabel = if (state.mode == PomodoroMode.FOCUS) "Focus" else "Break"
 
             LightText(
@@ -59,7 +58,6 @@ internal fun SetupScreenContent(
                 modifier = Modifier.padding(bottom = 16.dp),
             )
 
-            // Preview of the countdown, formatted as MM:SS
             val timeLabel = state.remainingSeconds.toTimeLabel()
 
             LightText(
@@ -70,7 +68,6 @@ internal fun SetupScreenContent(
                     .padding(vertical = 24.dp),
             )
 
-            // Starts the timer and switches to the running screen
             LightText(
                 text = "Start",
                 variant = LightTextVariant.Copy,
@@ -79,39 +76,38 @@ internal fun SetupScreenContent(
                     .lightClickable { viewModel.start() },
             )
 
-            // Opens the focus-length picker overlay
             MinutesDropdown(
                 label = "Focus",
                 selectedMinutes = state.focusMinutes,
                 enabled = true,
                 onClick = { activePicker = PickerTarget.FOCUS },
                 modifier = Modifier
-                    .width(160.dp)
+                    .width(200.dp)
                     .padding(bottom = 12.dp),
             )
 
-            // Opens the break-length picker overlay
             MinutesDropdown(
                 label = "Break",
                 selectedMinutes = state.breakMinutes,
                 enabled = true,
                 onClick = { activePicker = PickerTarget.BREAK },
                 modifier = Modifier
-                    .width(160.dp)
+                    .width(200.dp)
                     .padding(bottom = 12.dp),
             )
 
-            // Navigates to a real, separate LightScreen (with native back button),
-            // unlike Setup/Running which just swap Content within this same screen.
-            // Styled like the pill buttons above for visual consistency.
             LightText(
                 text = "History",
                 variant = LightTextVariant.Copy,
                 align = TextAlign.Center,
                 modifier = Modifier
-                    .width(160.dp)
+                    .width(200.dp)
                     .background(
-                        color = LightThemeTokens.colors.content.copy(alpha = 0.08f),
+                        color = LightThemeTokens.colors.content.copy(alpha = 0.25f),
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                    .border(
+                        border = BorderStroke(1.dp, LightThemeTokens.colors.content.copy(alpha = 0.4f)),
                         shape = RoundedCornerShape(12.dp),
                     )
                     .lightClickable { onHistoryClick() }
@@ -119,7 +115,6 @@ internal fun SetupScreenContent(
             )
         }
 
-        // Overlay picker, rendered on top of everything else when active
         when (activePicker) {
             PickerTarget.FOCUS -> MinutesPickerOverlay(
                 options = (15..60 step 5).toList(),
