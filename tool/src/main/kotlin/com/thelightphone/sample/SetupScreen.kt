@@ -102,10 +102,10 @@ internal fun SetupScreenContent(
                 align = TextAlign.Center,
                 modifier = Modifier
                     .width(200.dp)
-                    .background(
-                        color = LightThemeTokens.colors.content.copy(alpha = 0.25f),
-                        shape = RoundedCornerShape(12.dp),
-                    )
+//                    .background(
+//                        color = LightThemeTokens.colors.content.copy(alpha = 0.25f),
+//                        shape = RoundedCornerShape(12.dp),
+//                    )
                     .border(
                         border = BorderStroke(1.dp, LightThemeTokens.colors.content.copy(alpha = 0.4f)),
                         shape = RoundedCornerShape(12.dp),

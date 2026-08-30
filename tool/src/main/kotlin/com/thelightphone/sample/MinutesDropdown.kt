@@ -1,7 +1,6 @@
 package com.thelightphone.sample
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,10 +24,6 @@ fun MinutesDropdown(
         text = "$label: $selectedMinutes min",
         variant = LightTextVariant.Copy,
         modifier = modifier
-            .background(
-                color = LightThemeTokens.colors.content.copy(alpha = 0.25f),
-                shape = RoundedCornerShape(12.dp),
-            )
             .border(
                 border = BorderStroke(1.dp, LightThemeTokens.colors.content.copy(alpha = 0.4f)),
                 shape = RoundedCornerShape(12.dp),
