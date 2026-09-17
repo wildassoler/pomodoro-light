@@ -18,7 +18,7 @@ class HomeScreen(private val sealedActivity: SealedLightActivity) : LightScreen<
         get() = PomodoroViewModel::class.java
 
     override fun createViewModel(): PomodoroViewModel {
-        return PomodoroViewModel(lightContext.dataStore, DefaultLightAudio(sealedActivity))
+        return PomodoroViewModel(lightContext.dataStore, DefaultLightAudio(sealedActivity), lightContext.filesDir)
     }
 
     @Composable

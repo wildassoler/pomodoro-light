@@ -4,7 +4,6 @@ label = "Pomodoro Light"
 versionCode = 1
 versionName = "1.0.0"
 permissions = ["android.permission.INTERNET"]
-capabilities = []
-# change if you run this on an LP3!
+capabilities = ["detached-audio"]
 serverPackage = "com.lightos"
 # serverPackage = "com.thelightphone.sdk.emulator"
