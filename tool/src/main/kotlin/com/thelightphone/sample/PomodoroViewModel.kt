@@ -9,11 +9,6 @@ import androidx.lifecycle.viewModelScope
 import com.thelightphone.sdk.LightViewModel
 import com.thelightphone.sdk.SimpleLightScreen
 import com.thelightphone.sdk.audio.LightAudio
-import com.thelightphone.sdk.audio.LightAudioItem
-import com.thelightphone.sdk.audio.LightAudioPlayback
-import com.thelightphone.sdk.audio.LightAudioPlayer
-import com.thelightphone.sdk.audio.LightAudioSource
-import com.thelightphone.sdk.audio.LightMediaMetadata
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,24 +25,16 @@ private val KEY_TOTAL_MINUTES_TODAY = intPreferencesKey("pomodoro_total_minutes_
 
 class PomodoroViewModel(
     private val dataStore: DataStore<Preferences>,
-    private val lightAudio: LightAudio,
-    private val filesDir: File,
+    lightAudio: LightAudio,
+    filesDir: File,
 ) : LightViewModel<Unit>() {
 
     private val _state = MutableStateFlow(PomodoroState())
     val state = _state.asStateFlow()
 
     private var timerJob: Job? = null
-    private var alarmLoopJob: Job? = null
 
-    // Short attached player: used only for quick UI feedback sounds
-    // (click, pause, alert). These only need to play while the app is open.
-    private val alertPlayer: LightAudioPlayer = lightAudio.newPlayer()
-
-    // Detached player: plays a silent track for the length of the current
-    // Focus/Break session. Because it's detached, it survives the screen
-    // turning off / the app process dying — it's our "keep alive" signal.
-    private var timerPlayer: LightAudioPlayer? = null
+    private val audio = TimerAudioController(lightAudio, filesDir, viewModelScope)
 
     init {
         viewModelScope.launch {
@@ -63,11 +50,7 @@ class PomodoroViewModel(
     }
 
     override fun onCleared() {
-        alertPlayer.release()
-        // Deliberately NOT calling timerPlayer?.release()+stop() here:
-        // releasing a detached handle does not stop playback, so the
-        // silence track (and therefore our "timer") keeps running even
-        // after this ViewModel is destroyed.
+        audio.release()
         super.onCleared()
     }
 
@@ -108,12 +91,9 @@ class PomodoroViewModel(
     fun start() {
         if (_state.value.isRunning) return
 
-        alarmLoopJob?.cancel()
-        alarmLoopJob = null
-
         _state.value = _state.value.copy(isRunning = true, showSetupScreen = false)
-        playAlert("audio/start_click.wav")
-        startTimerAudio(_state.value.remainingSeconds)
+        audio.playAlert("audio/start_click.wav")
+        audio.startSession(_state.value.remainingSeconds)
 
         timerJob = viewModelScope.launch {
             while (_state.value.remainingSeconds > 0) {
@@ -122,30 +102,20 @@ class PomodoroViewModel(
                     remainingSeconds = _state.value.remainingSeconds - 1
                 )
             }
-            timerPlayer?.release()
-            timerPlayer = null
             onCountdownFinished()
         }
     }
 
     fun pause() {
         timerJob?.cancel()
-        timerPlayer?.let {
-            it.stop()
-            it.release()
-        }
-        timerPlayer = null
+        audio.stopSession()
         _state.value = _state.value.copy(isRunning = false)
-        playAlert("audio/pause_click.mp3")
+        audio.playAlert("audio/pause_click.mp3")
     }
 
     fun reset() {
         timerJob?.cancel()
-        timerPlayer?.let {
-            it.stop()
-            it.release()
-        }
-        timerPlayer = null
+        audio.stopSession()
         val minutes = minutesForCurrentMode()
         _state.value = _state.value.copy(
             isRunning = false,
@@ -175,13 +145,7 @@ class PomodoroViewModel(
 
     fun skipToNextPhase() {
         timerJob?.cancel()
-        alarmLoopJob?.cancel()
-        alarmLoopJob = null
-        timerPlayer?.let {
-            it.stop()
-            it.release()
-        }
-        timerPlayer = null
+        audio.stopSession()
 
         val nextMode = _state.value.mode.opposite()
         val nextMinutes = minutesFor(nextMode)
@@ -191,16 +155,12 @@ class PomodoroViewModel(
             remainingSeconds = nextMinutes * 60,
             isRunning = false,
         )
-        playAlert("audio/start_click.wav")
+        audio.playAlert("audio/start_click.wav")
     }
 
     fun backToSetup() {
         timerJob?.cancel()
-        timerPlayer?.let {
-            it.stop()
-            it.release()
-        }
-        timerPlayer = null
+        audio.stopSession()
         val minutes = minutesForCurrentMode()
         _state.value = _state.value.copy(
             isRunning = false,
@@ -264,52 +224,9 @@ class PomodoroViewModel(
         _state.value = _state.value.copy(pendingSound = null)
 
         when (sound) {
-            SoundEvent.FOCUS_ENDED -> playAlert("audio/finished_pomodoro.mp3")
-            SoundEvent.BREAK_ENDED -> startAlarmLoop("audio/finished_break.wav")
+            SoundEvent.FOCUS_ENDED -> audio.playAlert("audio/finished_pomodoro.mp3")
+            SoundEvent.BREAK_ENDED -> audio.startAlarmLoop("audio/finished_break.wav")
             null -> return
         }
-    }
-
-    private fun startAlarmLoop(assetPath: String) {
-        alarmLoopJob?.cancel()
-        alarmLoopJob = viewModelScope.launch {
-            while (true) {
-                playAlert(assetPath)
-                delay(200)
-                alertPlayer.isPlaying.first { !it }
-            }
-        }
-    }
-
-    private fun playAlert(assetPath: String) {
-        alertPlayer.setMediaQueue(
-            listOf(
-                LightAudioItem(
-                    source = LightAudioSource.AssetSource(assetPath),
-                    metadata = LightMediaMetadata(title = "Pomodoro alert"),
-                ),
-            ),
-        )
-        alertPlayer.play()
-    }
-
-    // Starts a detached, silent track lasting exactly [durationSeconds].
-    // This keeps a MediaSessionService alive for that whole duration,
-    // independent of this screen/process — our workaround for the lack
-    // of a proper "schedule an alert" API.
-    private fun startTimerAudio(durationSeconds: Int) {
-        val player = lightAudio.newPlayer(playback = LightAudioPlayback.Detached)
-        val silenceFile = SilenceAudio.file(filesDir, durationSeconds)
-
-        player.setMediaQueue(
-            listOf(
-                LightAudioItem(
-                    source = LightAudioSource.FileSource(silenceFile),
-                    metadata = LightMediaMetadata(title = "Pomodoro timer"),
-                ),
-            ),
-        )
-        player.play()
-        timerPlayer = player
     }
 }
